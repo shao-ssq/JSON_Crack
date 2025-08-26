@@ -12,13 +12,13 @@ loader.config({
 });
 
 const editorOptions: EditorProps["options"] = {
-  formatOnPaste: true,
   tabSize: 2,
-  formatOnType: true,
   minimap: { enabled: false },
   stickyScroll: { enabled: false },
   scrollBeyondLastLine: false,
   placeholder: "Start typing...",
+  formatOnType: true,
+  formatOnPaste: false, // 关闭内部自动格式化，统一在 onDidPaste 处理
 };
 
 const TextEditor = () => {
@@ -31,44 +31,57 @@ const TextEditor = () => {
   const theme = useConfig(state => (state.darkmodeEnabled ? "vs-dark" : "light"));
   const fileType = useFile(state => state.format);
 
+  // 设置 JSON Schema 验证
   React.useEffect(() => {
-    monaco?.languages.json.jsonDefaults.setDiagnosticsOptions({
-      validate: true,
-      allowComments: true,
-      enableSchemaRequest: true,
-      ...(jsonSchema && {
-        schemas: [
-          {
-            uri: "http://myserver/foo-schema.json",
-            fileMatch: ["*"],
-            schema: jsonSchema,
-          },
-        ],
-      }),
-    });
-  }, [jsonSchema, monaco?.languages.json.jsonDefaults]);
+    if (monaco) {
+      monaco.languages.json.jsonDefaults.setDiagnosticsOptions({
+        validate: true,
+        allowComments: true,
+        enableSchemaRequest: true,
+        ...(jsonSchema && {
+          schemas: [
+            {
+              uri: "http://myserver/foo-schema.json",
+              fileMatch: ["*"],
+              schema: jsonSchema,
+            },
+          ],
+        }),
+      });
+    }
+  }, [jsonSchema, monaco]);
 
+  // 提示未保存的变更
   React.useEffect(() => {
     const beforeunload = (e: BeforeUnloadEvent) => {
       if (getHasChanges()) {
         const confirmationMessage =
-          "Unsaved changes, if you leave before saving  your changes will be lost";
-
-        (e || window.event).returnValue = confirmationMessage; //Gecko + IE
+          "Unsaved changes, if you leave before saving your changes will be lost";
+        (e || window.event).returnValue = confirmationMessage;
         return confirmationMessage;
       }
     };
-
     window.addEventListener("beforeunload", beforeunload);
-
     return () => {
       window.removeEventListener("beforeunload", beforeunload);
     };
   }, [getHasChanges]);
 
+  // Monaco Mount 时配置粘贴行为
   const handleMount: OnMount = useCallback(editor => {
     editor.onDidPaste(() => {
-      editor.getAction("editor.action.formatDocument")?.run();
+      const model = editor.getModel();
+      if (model) {
+        let value = model.getValue();
+
+        // 去掉开头的空白、换行、BOM、零宽字符
+        value = value.replace(/^[\s\uFEFF\u200B]+/, "");
+
+        model.setValue(value);
+
+        // 格式化整个文档
+        editor.getAction("editor.action.formatDocument")?.run();
+      }
     });
   }, []);
 
@@ -84,11 +97,11 @@ const TextEditor = () => {
           onMount={handleMount}
           onValidate={errors => setError(errors[0]?.message || "")}
           onChange={contents => {
-            contents = (contents as string)
-              .split("\n") // 按行切割
-              .filter(line => line.trim() !== "") // 过滤掉空行（只含空格也算）
-              .join("\n");
-            setContents({ contents, skipUpdate: true });
+            if (typeof contents === "string") {
+              // 再次保险去掉开头空白
+              contents = contents.replace(/^[\s\uFEFF\u200B]+/, "");
+              setContents({ contents, skipUpdate: true });
+            }
           }}
           loading={<LoadingOverlay visible />}
         />
