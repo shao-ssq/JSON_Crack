@@ -5,7 +5,6 @@ import Editor, { type EditorProps, loader, type OnMount, useMonaco } from "@mona
 import useConfig from "../../store/useConfig";
 import useFile from "../../store/useFile";
 
-
 loader.config({
   paths: {
     vs: window.location.origin + "/monaco-editor/min/vs",
@@ -85,11 +84,11 @@ const TextEditor = () => {
           onMount={handleMount}
           onValidate={errors => setError(errors[0]?.message || "")}
           onChange={contents => {
-            const cleaned = contents
+            contents = (contents as string)
               .split("\n") // 按行切割
               .filter(line => line.trim() !== "") // 过滤掉空行（只含空格也算）
               .join("\n");
-            setContents({ cleaned, skipUpdate: true });
+            setContents({ contents, skipUpdate: true });
           }}
           loading={<LoadingOverlay visible />}
         />
