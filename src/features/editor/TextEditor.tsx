@@ -27,7 +27,6 @@ const TextEditor = () => {
   const setContents = useFile(state => state.setContents);
   const setError = useFile(state => state.setError);
   const jsonSchema = useFile(state => state.jsonSchema);
-  const getHasChanges = useFile(state => state.getHasChanges);
   const theme = useConfig(state => (state.darkmodeEnabled ? "vs-dark" : "light"));
   const fileType = useFile(state => state.format);
 
@@ -50,22 +49,6 @@ const TextEditor = () => {
       });
     }
   }, [jsonSchema, monaco]);
-
-  // 提示未保存的变更
-  React.useEffect(() => {
-    const beforeunload = (e: BeforeUnloadEvent) => {
-      if (getHasChanges()) {
-        const confirmationMessage =
-          "Unsaved changes, if you leave before saving your changes will be lost";
-        (e || window.event).returnValue = confirmationMessage;
-        return confirmationMessage;
-      }
-    };
-    window.addEventListener("beforeunload", beforeunload);
-    return () => {
-      window.removeEventListener("beforeunload", beforeunload);
-    };
-  }, [getHasChanges]);
 
   // Monaco Mount 时配置粘贴行为
   const handleMount: OnMount = useCallback(editor => {
@@ -121,7 +104,7 @@ const StyledEditorWrapper = styled.div`
 
 const StyledWrapper = styled.div`
   display: grid;
-  height: calc(100vh - 67px);
+  height: calc(100vh - 27px);
   grid-template-columns: 100%;
   grid-template-rows: minmax(0, 1fr);
 `;

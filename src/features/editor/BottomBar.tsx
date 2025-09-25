@@ -1,15 +1,14 @@
 import React from "react";
-import { Flex, Menu, Popover, Text } from "@mantine/core";
+import { Flex, Menu, Text } from "@mantine/core";
 import styled from "styled-components";
 import { event as gaEvent } from "nextjs-google-analytics";
 import { BiSolidDockLeft } from "react-icons/bi";
 import { IoMdCheckmark } from "react-icons/io";
 import { MdArrowUpward } from "react-icons/md";
-import { VscCheck, VscError, VscRunAll, VscSync, VscSyncIgnored } from "react-icons/vsc";
 import { formats } from "../../enums/file.enum";
 import useConfig from "../../store/useConfig";
 import useFile from "../../store/useFile";
-import useGraph from "./views/GraphView/stores/useGraph";
+import { ViewMenu } from "./Toolbar/ViewMenu";
 
 const StyledBottomBar = styled.div`
   position: relative;
@@ -76,17 +75,13 @@ const StyledBottomBarItem = styled.button<{ $bg?: string }>`
 
 export const BottomBar = () => {
   const data = useFile(state => state.fileData);
-  const toggleLiveTransform = useConfig(state => state.toggleLiveTransform);
   const liveTransformEnabled = useConfig(state => state.liveTransformEnabled);
   const error = useFile(state => state.error);
   const setContents = useFile(state => state.setContents);
-  const toggleFullscreen = useGraph(state => state.toggleFullscreen);
-  const fullscreen = useGraph(state => state.fullscreen);
   const setFormat = useFile(state => state.setFormat);
   const currentFormat = useFile(state => state.format);
 
   const toggleEditor = () => {
-    toggleFullscreen(!fullscreen);
     gaEvent("toggle_fullscreen");
   };
 
@@ -100,45 +95,13 @@ export const BottomBar = () => {
         <StyledBottomBarItem onClick={toggleEditor}>
           <BiSolidDockLeft />
         </StyledBottomBarItem>
-        <StyledBottomBarItem>
-          {error ? (
-            <Popover width="auto" shadow="md" position="top" withArrow>
-              <Popover.Target>
-                <Flex align="center" gap={2}>
-                  <VscError color="red" />
-                  <Text c="red" fw={500} fz="xs">
-                    Invalid
-                  </Text>
-                </Flex>
-              </Popover.Target>
-              <Popover.Dropdown style={{ pointerEvents: "none" }}>
-                <Text size="xs">{error}</Text>
-              </Popover.Dropdown>
-            </Popover>
-          ) : (
-            <Flex align="center" gap={2}>
-              <VscCheck />
-              <Text size="xs">Valid</Text>
-            </Flex>
-          )}
-        </StyledBottomBarItem>
-        <StyledBottomBarItem
-          onClick={() => {
-            toggleLiveTransform(!liveTransformEnabled);
-            gaEvent("toggle_live_transform");
-          }}
-        >
-          {liveTransformEnabled ? <VscSync /> : <VscSyncIgnored />}
-          <Text fz="xs">Live Transform</Text>
-        </StyledBottomBarItem>
+        <ViewMenu />
         {!liveTransformEnabled && (
           <StyledBottomBarItem onClick={() => setContents({})} disabled={!!error}>
-            <VscRunAll />
             Click to Transform
           </StyledBottomBarItem>
         )}
       </StyledLeft>
-
       <StyledRight>
         <Menu offset={8}>
           <Menu.Target>

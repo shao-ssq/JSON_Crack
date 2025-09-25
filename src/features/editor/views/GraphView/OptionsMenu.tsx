@@ -1,15 +1,17 @@
 import React from "react";
-import { ActionIcon, Button, Flex, Menu, Text } from "@mantine/core";
+import { ActionIcon, Flex } from "@mantine/core";
 import { useHotkeys } from "@mantine/hooks";
 import styled from "styled-components";
 import { event as gaEvent } from "nextjs-google-analytics";
-import { BsCheck2 } from "react-icons/bs";
-import { LuChevronRight, LuImageDown, LuMenu } from "react-icons/lu";
+import { AiTwotoneEdit } from "react-icons/ai";
+import { LuImageDown } from "react-icons/lu";
 import { TiFlowMerge } from "react-icons/ti";
-import useConfig from "../../../../store/useConfig";
+import useFile from "../../../../store/useFile";
+import useJson from "../../../../store/useJson";
 import { useModal } from "../../../../store/useModal";
 import type { LayoutDirection } from "../../../../types/graph";
 import useGraph from "./stores/useGraph";
+import { FileFormat } from "../../../../enums/file.enum";
 
 const StyledFlowIcon = styled(TiFlowMerge)<{ rotate: number }>`
   transform: rotate(${({ rotate }) => `${rotate}deg`});
@@ -30,15 +32,12 @@ const rotateLayout = (direction: LayoutDirection) => {
 };
 
 export const OptionsMenu = () => {
-  const toggleGestures = useConfig(state => state.toggleGestures);
-  const toggleRulers = useConfig(state => state.toggleRulers);
-  const toggleImagePreview = useConfig(state => state.toggleImagePreview);
-  const gesturesEnabled = useConfig(state => state.gesturesEnabled);
-  const rulersEnabled = useConfig(state => state.rulersEnabled);
-  const imagePreviewEnabled = useConfig(state => state.imagePreviewEnabled);
   const setDirection = useGraph(state => state.setDirection);
   const direction = useGraph(state => state.direction);
   const setVisible = useModal(state => state.setVisible);
+  const getJson = useJson(state => state.getJson);
+  const setContents = useFile(state => state.setContents);
+
   const [coreKey, setCoreKey] = React.useState("CTRL");
 
   const toggleDirection = () => {
@@ -66,10 +65,33 @@ export const OptionsMenu = () => {
     }
   }, []);
 
+  async function requestLLM() {
+    try {
+      const json = getJson();
+
+      const response = await fetch("http://127.0.0.1:5000/tools/json_fix", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ json_input: json, stream: false }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      // 一次性获取完整 JSON
+      const result = await response.json();
+      setContents({ contents: JSON.stringify(result, null, 2), format: FileFormat.JSON });
+    } catch (error) {
+      console.error("请求LLM失败:", error);
+    }
+  }
+
   return (
     <Flex
       gap="xs"
       align="center"
+      direction={"column"}
       style={{
         position: "absolute",
         top: "10px",
@@ -77,87 +99,40 @@ export const OptionsMenu = () => {
         zIndex: 100,
       }}
     >
-      <Menu withArrow>
-        <Menu.Target>
-          <ActionIcon aria-label="actions" size="lg" color="gray" variant="light">
-            <LuMenu size="18" />
-          </ActionIcon>
-        </Menu.Target>
-        <Menu.Dropdown>
-          <Menu.Item
-            leftSection={<LuImageDown color="gray" />}
-            onClick={() => setVisible("DownloadModal", true)}
-          >
-            <Flex fz="xs" justify="space-between" gap="md">
-              <Text fz="xs">Export as image</Text>
-              <Text ml="md" fz={10} c="dimmed">
-                {coreKey} + S
-              </Text>
-            </Flex>
-          </Menu.Item>
-          <Menu.Item
-            fz={12}
-            onClick={() => {
-              toggleDirection();
-              gaEvent("rotate_layout", { label: direction });
-            }}
-            leftSection={<StyledFlowIcon rotate={rotateLayout(direction || "RIGHT")} />}
-            rightSection={
-              <Text ml="md" fz={10} c="dimmed">
-                {coreKey} Shift D
-              </Text>
-            }
-            closeMenuOnClick={false}
-          >
-            Rotate Layout
-          </Menu.Item>
-          <Menu.Divider />
-          <Menu position="right" trigger="hover" offset={0}>
-            <Menu.Target>
-              <Button
-                variant="subtle"
-                size="xs"
-                color="text"
-                fullWidth
-                fw="400"
-                rightSection={<LuChevronRight />}
-                styles={{ root: { paddingInline: 11 }, inner: { justifyContent: "space-between" } }}
-              >
-                View Options
-              </Button>
-            </Menu.Target>
-            <Menu.Dropdown>
-              <Menu.Item
-                leftSection={<BsCheck2 opacity={rulersEnabled ? 100 : 0} />}
-                onClick={() => {
-                  toggleRulers(!rulersEnabled);
-                  gaEvent("toggle_rulers", { label: rulersEnabled ? "on" : "off" });
-                }}
-              >
-                <Text size="xs">Rulers</Text>
-              </Menu.Item>
-              <Menu.Item
-                leftSection={<BsCheck2 opacity={gesturesEnabled ? 100 : 0} />}
-                onClick={() => {
-                  toggleGestures(!gesturesEnabled);
-                  gaEvent("toggle_gestures", { label: gesturesEnabled ? "on" : "off" });
-                }}
-              >
-                <Text size="xs">Zoom on Scroll</Text>
-              </Menu.Item>
-              <Menu.Item
-                leftSection={<BsCheck2 opacity={imagePreviewEnabled ? 100 : 0} />}
-                onClick={() => {
-                  toggleImagePreview(!imagePreviewEnabled);
-                  gaEvent("toggle_image_preview", { label: imagePreviewEnabled ? "on" : "off" });
-                }}
-              >
-                <Text size="xs">Image Link Preview</Text>
-              </Menu.Item>
-            </Menu.Dropdown>
-          </Menu>
-        </Menu.Dropdown>
-      </Menu>
+      <ActionIcon
+        aria-label="ask-llm"
+        size="lg"
+        color="teal"
+        variant="light"
+        onClick={() => {
+          requestLLM();
+          gaEvent("request_llm", { label: "ask" });
+        }}
+      >
+        <AiTwotoneEdit size={18} />
+      </ActionIcon>
+      <ActionIcon
+        aria-label="download"
+        size="lg"
+        color="blue"
+        variant="light"
+        onClick={() => setVisible("DownloadModal", true)}
+      >
+        <LuImageDown size={18} />
+      </ActionIcon>
+
+      <ActionIcon
+        aria-label="rotate layout"
+        size="lg"
+        color="gray"
+        variant="light"
+        onClick={() => {
+          toggleDirection();
+          gaEvent("rotate_layout", { label: direction });
+        }}
+      >
+        <StyledFlowIcon rotate={rotateLayout(direction || "RIGHT")} />
+      </ActionIcon>
     </Flex>
   );
 };

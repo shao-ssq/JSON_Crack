@@ -10,6 +10,7 @@ import { contentToJson, jsonToContent } from "../lib/utils/jsonAdapter";
 import useConfig from "./useConfig";
 import useJson from "./useJson";
 
+
 const defaultJson = JSON.stringify(exampleJson, null, 2);
 
 type SetContents = {
@@ -29,7 +30,7 @@ interface JsonActions {
   setHasChanges: (hasChanges: boolean) => void;
   setContents: (data: SetContents) => void;
   fetchUrl: (url: string) => void;
-  setFormat: (format: FileFormat) => void;
+  setFormat: (format: { contents: string; hasChanges: boolean }) => void;
   clear: () => void;
   setFile: (fileData: File) => void;
   setJsonSchema: (jsonSchema: object | null) => void;

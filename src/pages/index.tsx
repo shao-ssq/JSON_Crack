@@ -13,7 +13,6 @@ import { SEO } from "../constants/seo";
 import { darkTheme, lightTheme } from "../constants/theme";
 import { BottomBar } from "../features/editor/BottomBar";
 import { FullscreenDropzone } from "../features/editor/FullscreenDropzone";
-import { Toolbar } from "../features/editor/Toolbar";
 import useGraph from "../features/editor/views/GraphView/stores/useGraph";
 import useConfig from "../store/useConfig";
 import useFile from "../store/useFile";
@@ -48,7 +47,7 @@ export const StyledEditor = styled(Allotment)`
   position: relative !important;
   display: flex;
   background: ${({ theme }) => theme.BACKGROUND_SECONDARY};
-  height: calc(100vh - 40px);
+  height: 100vh;
 
   @media only screen and (max-width: 320px) {
     height: 100vh;
@@ -98,7 +97,7 @@ const EditorPage = () => {
           <ModalController />
           <StyledEditorWrapper>
             <StyledPageWrapper>
-              <Toolbar />
+              {/*<Toolbar />*/}
               <StyledEditorWrapper>
                 <StyledEditor proportionalLayout={false}>
                   <Allotment.Pane
