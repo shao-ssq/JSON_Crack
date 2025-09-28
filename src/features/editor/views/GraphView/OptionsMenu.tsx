@@ -6,12 +6,12 @@ import { event as gaEvent } from "nextjs-google-analytics";
 import { AiTwotoneEdit } from "react-icons/ai";
 import { LuImageDown } from "react-icons/lu";
 import { TiFlowMerge } from "react-icons/ti";
+import { FileFormat } from "../../../../enums/file.enum";
 import useFile from "../../../../store/useFile";
 import useJson from "../../../../store/useJson";
 import { useModal } from "../../../../store/useModal";
 import type { LayoutDirection } from "../../../../types/graph";
 import useGraph from "./stores/useGraph";
-import { FileFormat } from "../../../../enums/file.enum";
 
 const StyledFlowIcon = styled(TiFlowMerge)<{ rotate: number }>`
   transform: rotate(${({ rotate }) => `${rotate}deg`});
@@ -38,8 +38,6 @@ export const OptionsMenu = () => {
   const getJson = useJson(state => state.getJson);
   const setContents = useFile(state => state.setContents);
 
-  const [coreKey, setCoreKey] = React.useState("CTRL");
-
   const toggleDirection = () => {
     const nextDirection = getNextDirection(direction || "RIGHT");
     if (setDirection) setDirection(nextDirection);
@@ -59,17 +57,11 @@ export const OptionsMenu = () => {
     []
   );
 
-  React.useEffect(() => {
-    if (typeof window !== "undefined") {
-      setCoreKey(navigator.userAgent.indexOf("Mac OS X") ? "⌘" : "CTRL");
-    }
-  }, []);
-
   async function requestLLM() {
     try {
       const json = getJson();
 
-      const response = await fetch("http://127.0.0.1:5000/tools/json_fix", {
+      const response = await fetch("http://172.21.3.56:5000/tools/json_fix", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ json_input: json, stream: false }),
